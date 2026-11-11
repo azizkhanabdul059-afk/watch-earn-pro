@@ -1,0 +1,283 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with authentication and status details",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 128 },
+        "displayName": { "type": "string", "maxLength": 100 },
+        "country": { "type": "string", "maxLength": 64 },
+        "role": { "type": "string", "enum": ["user", "advertiser", "admin"], "maxLength": 32 },
+        "status": { "type": "string", "enum": ["active", "suspended"], "maxLength": 32 },
+        "referralCode": { "type": "string", "maxLength": 32 },
+        "referredBy": { "type": "string", "maxLength": 32 },
+        "emailVerified": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role", "status", "referralCode", "createdAt"]
+    },
+    "Advertiser": {
+      "title": "Advertiser",
+      "description": "Registered advertiser company profile and account balance",
+      "type": "object",
+      "properties": {
+        "advertiserId": { "type": "string", "maxLength": 128 },
+        "companyName": { "type": "string", "maxLength": 100 },
+        "contactEmail": { "type": "string", "maxLength": 128 },
+        "website": { "type": "string", "maxLength": 200 },
+        "balance": { "type": "number" },
+        "totalSpent": { "type": "number" },
+        "verified": { "type": "boolean" },
+        "status": { "type": "string", "enum": ["active", "suspended"], "maxLength": 32 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["advertiserId", "companyName", "contactEmail", "balance", "status", "createdAt"]
+    },
+    "Campaign": {
+      "title": "Campaign",
+      "description": "Advertiser sponsored video campaign specification",
+      "type": "object",
+      "properties": {
+        "campaignId": { "type": "string", "maxLength": 128 },
+        "advertiserId": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 120 },
+        "description": { "type": "string", "maxLength": 500 },
+        "videoUrl": { "type": "string", "maxLength": 300 },
+        "thumbnail": { "type": "string", "maxLength": 300 },
+        "category": { "type": "string", "maxLength": 50 },
+        "rewardAmount": { "type": "number" },
+        "requiredWatchDuration": { "type": "number" },
+        "totalSlots": { "type": "number" },
+        "remainingSlots": { "type": "number" },
+        "completedCount": { "type": "number" },
+        "targetCountries": { "type": "string", "maxLength": 100 },
+        "dailyCompletionLimit": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "active", "paused", "completed", "rejected"], "maxLength": 32 },
+        "budget": { "type": "number" },
+        "remainingBudget": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "expiresAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["campaignId", "advertiserId", "title", "videoUrl", "rewardAmount", "requiredWatchDuration", "status", "budget", "createdAt"]
+    },
+    "CampaignSession": {
+      "title": "CampaignSession",
+      "description": "Active task session token tracking video watch progress and anti-fraud telemetry",
+      "type": "object",
+      "properties": {
+        "sessionId": { "type": "string", "maxLength": 128 },
+        "campaignId": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "token": { "type": "string", "maxLength": 128 },
+        "status": { "type": "string", "enum": ["started", "verifying", "completed", "expired", "fraud_flagged"], "maxLength": 32 },
+        "watchTimeSeconds": { "type": "number" },
+        "clientFingerprint": { "type": "string", "maxLength": 128 },
+        "startedAt": { "type": "string", "format": "date-time" },
+        "completedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["sessionId", "campaignId", "userId", "token", "status", "startedAt"]
+    },
+    "CampaignCompletion": {
+      "title": "CampaignCompletion",
+      "description": "Immutable record of a verified video view completion",
+      "type": "object",
+      "properties": {
+        "completionId": { "type": "string", "maxLength": 128 },
+        "campaignId": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "rewardAmount": { "type": "number" },
+        "completedAt": { "type": "string", "format": "date-time" },
+        "verificationHash": { "type": "string", "maxLength": 128 }
+      },
+      "required": ["completionId", "campaignId", "userId", "rewardAmount", "completedAt"]
+    },
+    "Wallet": {
+      "title": "Wallet",
+      "description": "User ledger account holding available, pending, and total earnings",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "availableBalance": { "type": "number" },
+        "pendingBalance": { "type": "number" },
+        "totalEarned": { "type": "number" },
+        "totalWithdrawn": { "type": "number" },
+        "referralEarnings": { "type": "number" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "availableBalance", "pendingBalance", "totalEarned", "totalWithdrawn", "updatedAt"]
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "description": "Immutable ledger entry for every credit, debit, or referral payout",
+      "type": "object",
+      "properties": {
+        "transactionId": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "type": { "type": "string", "maxLength": 64 },
+        "amount": { "type": "number" },
+        "status": { "type": "string", "enum": ["completed", "pending", "failed", "reversed"], "maxLength": 32 },
+        "idempotencyKey": { "type": "string", "maxLength": 128 },
+        "referenceId": { "type": "string", "maxLength": 128 },
+        "description": { "type": "string", "maxLength": 255 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["transactionId", "userId", "type", "amount", "status", "idempotencyKey", "createdAt"]
+    },
+    "Withdrawal": {
+      "title": "Withdrawal",
+      "description": "Payout request to JazzCash, Easypaisa, Bank Transfer, or PayPal",
+      "type": "object",
+      "properties": {
+        "withdrawalId": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "amount": { "type": "number" },
+        "paymentMethod": { "type": "string", "enum": ["jazzcash", "easypaisa", "bank_transfer", "paypal", "crypto_usdt"], "maxLength": 32 },
+        "accountTitle": { "type": "string", "maxLength": 100 },
+        "accountNumber": { "type": "string", "maxLength": 100 },
+        "bankName": { "type": "string", "maxLength": 100 },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"], "maxLength": 32 },
+        "transactionRef": { "type": "string", "maxLength": 128 },
+        "adminNotes": { "type": "string", "maxLength": 300 },
+        "proofUrl": { "type": "string", "maxLength": 300 },
+        "requestedAt": { "type": "string", "format": "date-time" },
+        "processedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["withdrawalId", "userId", "amount", "paymentMethod", "accountTitle", "accountNumber", "status", "requestedAt"]
+    },
+    "Referral": {
+      "title": "Referral",
+      "description": "Referral connection between inviter and new member",
+      "type": "object",
+      "properties": {
+        "referralId": { "type": "string", "maxLength": 128 },
+        "referrerId": { "type": "string", "maxLength": 128 },
+        "referredUserId": { "type": "string", "maxLength": 128 },
+        "commissionEarned": { "type": "number" },
+        "status": { "type": "string", "enum": ["active", "pending_task"], "maxLength": 32 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["referralId", "referrerId", "referredUserId", "commissionEarned", "status", "createdAt"]
+    },
+    "SupportTicket": {
+      "title": "SupportTicket",
+      "description": "Customer inquiry or ticket for assistance",
+      "type": "object",
+      "properties": {
+        "ticketId": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "userEmail": { "type": "string", "maxLength": 128 },
+        "subject": { "type": "string", "maxLength": 150 },
+        "category": { "type": "string", "maxLength": 50 },
+        "message": { "type": "string", "maxLength": 1000 },
+        "status": { "type": "string", "enum": ["open", "in_progress", "resolved", "closed"], "maxLength": 32 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ticketId", "userId", "userEmail", "subject", "message", "status", "createdAt"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "User in-app alert regarding payout, campaign, or reward",
+      "type": "object",
+      "properties": {
+        "notificationId": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 100 },
+        "message": { "type": "string", "maxLength": 300 },
+        "type": { "type": "string", "maxLength": 32 },
+        "read": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["notificationId", "userId", "title", "message", "read", "createdAt"]
+    },
+    "AdminSettings": {
+      "title": "AdminSettings",
+      "description": "Platform global configuration controlled by administrators",
+      "type": "object",
+      "properties": {
+        "platformCommissionRate": { "type": "number" },
+        "minWithdrawalPKR": { "type": "number" },
+        "minWithdrawalUSD": { "type": "number" },
+        "referralCommissionPct": { "type": "number" },
+        "dailyBonusAmount": { "type": "number" },
+        "dailyBonusEnabled": { "type": "boolean" },
+        "supportedCountries": { "type": "string", "maxLength": 200 },
+        "fraudSensitivity": { "type": "string", "maxLength": 32 },
+        "maintenanceMode": { "type": "boolean" }
+      },
+      "required": ["platformCommissionRate", "minWithdrawalPKR", "minWithdrawalUSD", "referralCommissionPct", "dailyBonusAmount", "dailyBonusEnabled"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Security audit record of high-privilege administrative actions",
+      "type": "object",
+      "properties": {
+        "logId": { "type": "string", "maxLength": 128 },
+        "actorId": { "type": "string", "maxLength": 128 },
+        "actorRole": { "type": "string", "maxLength": 32 },
+        "action": { "type": "string", "maxLength": 100 },
+        "targetResource": { "type": "string", "maxLength": 128 },
+        "details": { "type": "string", "maxLength": 500 },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["logId", "actorId", "actorRole", "action", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile documents keyed by Firebase Auth UID"
+    },
+    "/advertisers/{advertiserId}": {
+      "schema": "Advertiser",
+      "description": "Advertiser account documents keyed by advertiser UID"
+    },
+    "/campaigns/{campaignId}": {
+      "schema": "Campaign",
+      "description": "Advertiser sponsored video campaigns"
+    },
+    "/campaignSessions/{sessionId}": {
+      "schema": "CampaignSession",
+      "description": "Active watch-and-earn verification sessions"
+    },
+    "/campaignCompletions/{completionId}": {
+      "schema": "CampaignCompletion",
+      "description": "Verified campaign completion records"
+    },
+    "/wallets/{userId}": {
+      "schema": "Wallet",
+      "description": "User wallet ledger document keyed by user UID"
+    },
+    "/transactions/{transactionId}": {
+      "schema": "Transaction",
+      "description": "Immutable ledger of all wallet credits, debits, and adjustments"
+    },
+    "/withdrawals/{withdrawalId}": {
+      "schema": "Withdrawal",
+      "description": "User withdrawal payout requests"
+    },
+    "/referrals/{referralId}": {
+      "schema": "Referral",
+      "description": "Referral attribution tracking"
+    },
+    "/supportTickets/{ticketId}": {
+      "schema": "SupportTicket",
+      "description": "Customer support service tickets"
+    },
+    "/notifications/{notificationId}": {
+      "schema": "Notification",
+      "description": "In-app notifications for users"
+    },
+    "/adminSettings/{settingId}": {
+      "schema": "AdminSettings",
+      "description": "Global platform operational settings"
+    },
+    "/auditLogs/{logId}": {
+      "schema": "AuditLog",
+      "description": "Immutable security and administrative audit trail"
+    }
+  }
+}

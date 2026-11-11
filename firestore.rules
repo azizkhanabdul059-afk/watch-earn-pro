@@ -1,0 +1,157 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Hardened Security Primitives
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        (request.auth.token.email != null && request.auth.token.email == 'azizkhanabdul059@gmail.com') ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isValidUser(data) {
+      return data.uid is string && data.uid.size() <= 128 &&
+             data.email is string && data.email.size() <= 128 &&
+             data.role in ['user', 'advertiser', 'admin'] &&
+             data.status in ['active', 'suspended'] &&
+             data.referralCode is string && data.referralCode.size() <= 32;
+    }
+
+    // Admins Collection
+    match /admins/{adminId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() && isValidId(adminId);
+    }
+
+    // Users Collection
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && isValidId(userId) &&
+                       isValidUser(request.resource.data) &&
+                       request.resource.data.uid == request.auth.uid &&
+                       request.resource.data.role == 'user' &&
+                       request.resource.data.status == 'active';
+      allow update: if (
+        isAdmin() ||
+        (isOwner(userId) && isValidId(userId) &&
+         isValidUser(request.resource.data) &&
+         request.resource.data.uid == resource.data.uid &&
+         request.resource.data.role == resource.data.role &&
+         request.resource.data.status == resource.data.status)
+      );
+      allow delete: if isAdmin() && isValidId(userId);
+    }
+
+    // Advertisers Collection
+    match /advertisers/{advertiserId} {
+      allow read: if isSignedIn();
+      allow create: if (isOwner(advertiserId) || isAdmin()) && isValidId(advertiserId);
+      allow update: if (isAdmin() || (isOwner(advertiserId) && isValidId(advertiserId) &&
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['companyName', 'website', 'contactEmail'])));
+      allow delete: if isAdmin() && isValidId(advertiserId);
+    }
+
+    // Campaigns Collection
+    match /campaigns/{campaignId} {
+      allow read: if true;
+      allow create: if isSignedIn() && isValidId(campaignId);
+      allow update: if (isAdmin() || (isSignedIn() && isValidId(campaignId) && resource.data.advertiserId == request.auth.uid));
+      allow delete: if isAdmin() && isValidId(campaignId);
+    }
+
+    // Campaign Sessions Collection
+    match /campaignSessions/{sessionId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(sessionId) && request.resource.data.userId == request.auth.uid;
+      allow update: if isSignedIn() && isValidId(sessionId) && (resource.data.userId == request.auth.uid || isAdmin());
+      allow delete: if isAdmin() && isValidId(sessionId);
+    }
+
+    // Campaign Completions Collection (Write-protected from client tampering)
+    match /campaignCompletions/{completionId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow write: if isAdmin() && isValidId(completionId);
+    }
+
+    // Wallets Collection (Ledger Protection: Direct writes forbidden from untrusted clients)
+    match /wallets/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if isAdmin() && isValidId(userId);
+    }
+
+    // Transactions Collection (Immutable Financial Ledger)
+    match /transactions/{transactionId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow write: if isAdmin() && isValidId(transactionId);
+    }
+
+    // Withdrawals Collection
+    match /withdrawals/{withdrawalId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(withdrawalId) &&
+                       request.resource.data.userId == request.auth.uid &&
+                       request.resource.data.status == 'pending' &&
+                       request.resource.data.amount is number &&
+                       request.resource.data.amount > 0;
+      allow update: if isAdmin() && isValidId(withdrawalId);
+      allow delete: if isAdmin() && isValidId(withdrawalId);
+    }
+
+    // Referrals Collection
+    match /referrals/{referralId} {
+      allow read: if isSignedIn() && (
+        resource.data.referrerId == request.auth.uid ||
+        resource.data.referredUserId == request.auth.uid ||
+        isAdmin()
+      );
+      allow write: if isAdmin() && isValidId(referralId);
+    }
+
+    // Support Tickets Collection
+    match /supportTickets/{ticketId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(ticketId) && request.resource.data.userId == request.auth.uid;
+      allow update: if isSignedIn() && isValidId(ticketId) && (resource.data.userId == request.auth.uid || isAdmin());
+      allow delete: if isAdmin() && isValidId(ticketId);
+    }
+
+    // Notifications Collection
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow update: if isSignedIn() && isValidId(notificationId) &&
+                       resource.data.userId == request.auth.uid &&
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+      allow write: if isAdmin() && isValidId(notificationId);
+    }
+
+    // Admin Settings Collection
+    match /adminSettings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidId(settingId);
+    }
+
+    // Audit Logs Collection
+    match /auditLogs/{logId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin() && isValidId(logId);
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "Aziz Creative Studio",
+  "description": "WatchEarn Pro - International online rewards & sponsored video platform with anti-cheat verification, immutable financial ledger, and multi-gateway payouts for Pakistan and global users.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
